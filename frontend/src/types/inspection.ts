@@ -1,37 +1,53 @@
 export interface Damage {
-  type: string;
-  confidence: number;
-  location: string;
-  bbox?: [number, number, number, number];
+  type: string
+  confidence: number
+  location: string
+  bbox?: [number, number, number, number]
 }
 
 export interface QualityResult {
-  success: boolean;
-  message: string;
-  sharpness?: number;
-  resolution?: { width: number; height: number };
+  success: boolean
+  message: string
+  sharpness?: number
+  resolution?: { width: number; height: number }
 }
 
 export interface DetectionResult {
-  hasDamage: boolean;
-  damages: Damage[];
-  message: string;
-  imageWithAnnotations?: string;
-  processedImage?: string;
+  hasDamage: boolean
+  damages: Damage[]
+  message: string
+  imageWithAnnotations?: string
+  processedImage?: string
 }
+
+export type PhotoKey =
+  | 'front'
+  | 'rear'
+  | 'left'
+  | 'right'
+  | 'dashboard'
+  | 'vin'
+
+export type PhotoRequirement = {
+  key: PhotoKey
+  label: string
+  helper: string
+}
+
+export type InspectionStep =
+  | 'landing'
+  | PhotoKey
+  | 'quality-check'
+  | 'damage-detection'
+  | 'results'
 
 export interface InspectionState {
-  currentStep: InspectionStep;
-  uploadedImage: File | null;
-  imagePreview: string;
-  qualityResult: QualityResult | null;
-  detectionResult: DetectionResult | null;
-  isProcessing: boolean;
-  error: string | null;
+  currentStep: InspectionStep
+  photos: Partial<Record<PhotoKey, File>>
+  previews: Partial<Record<PhotoKey, string>>
+  qualityResult: QualityResult | null
+  detectionResult: DetectionResult | null
+  isProcessing: boolean
+  notes: string[]
+  error: string | null
 }
-
-export type InspectionStep = 
-  | 'upload' 
-  | 'quality-check' 
-  | 'damage-detection' 
-  | 'results';

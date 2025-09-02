@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root { height: 100%; }
+body { @apply bg-gray-50 text-gray-800; }
+
+/* small utilities for cards */
+.card { @apply bg-white rounded-2xl shadow-sm p-5 }
+
 @layer base {
   body {
     font-family: 'Inter', system-ui, sans-serif;
@@ -26,5 +32,13 @@
 @layer utilities {
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+.camera-container {
+  position: relative;
+}
+@media (max-width: 640px) {
+  .camera-container {
+    margin: 0 -1rem;
   }
 }

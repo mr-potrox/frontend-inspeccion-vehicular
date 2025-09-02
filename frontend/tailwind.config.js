@@ -7,14 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-        }
-      }
+        primary: "#2563eb",   // azul amigable
+        secondary: "#f97316", // naranja cálido
+        neutral: "#f3f4f6",   // gris claro
+      },
     },
   },
   plugins: [],
-}
+};

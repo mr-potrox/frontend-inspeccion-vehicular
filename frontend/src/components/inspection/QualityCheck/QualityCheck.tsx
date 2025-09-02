@@ -1,79 +1,45 @@
-import React from 'react';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { Button } from '../../../components/common/Button';
-import { useInspection } from '../../../contexts/InspectionContext';
-import { useImageProcessing } from '../../../hooks/useImageProcessing';
+import React from 'react'
+import Button from '@/components/common/Button/Button'
+import CoachChat from '@/components/common/CoachChat/CoachChat'
+import { useInspectionStore } from '@/hooks/useInspectionStore'
+import { PhotoKey } from '@/types/inspection'
 
-export const QualityCheck: React.FC = () => {
-  const { qualityResult, imagePreview, uploadedImage, setCurrentStep, setDetectionResult, setIsProcessing } = useInspection();
-  const { processDamageDetection } = useImageProcessing();
+const REQUIRED: { key: PhotoKey; label: string }[] = [
+  { key: 'front', label: 'Frontal' },
+  { key: 'rear', label: 'Trasera' },
+  { key: 'left', label: 'Lateral izquierdo' },
+  { key: 'right', label: 'Lateral derecho' },
+  { key: 'dashboard', label: 'Tablero / Odómetro' },
+  { key: 'vin', label: 'VIN / Motor' }
+]
 
-  const handleContinue = async () => {
-    if (!uploadedImage) return;
-    
-    setIsProcessing(true);
-    try {
-      const detectionResult = await processDamageDetection(uploadedImage);
-      setDetectionResult(detectionResult);
-      setCurrentStep('results');
-    } catch (error) {
-      console.error('Error processing damage detection:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  if (!qualityResult) return null;
+export default function QualityCheck({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const { state } = useInspectionStore()
+  const missing = REQUIRED.filter((r) => !state.photos[r.key])
+  const ready = missing.length === 0
 
   return (
-    <div className="text-center">
-      <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 ${
-        qualityResult.success ? 'bg-green-100' : 'bg-red-100'
-      }`}>
-        {qualityResult.success ? (
-          <CheckCircle size={32} className="text-green-600" />
-        ) : (
-          <XCircle size={32} className="text-red-600" />
-        )}
+    <div className="space-y-6">
+      <CoachChat messages={["✅ Validemos las tomas", ready ? 'Perfecto, tienes todas las fotos' : 'Faltan algunas fotos. Puedes volver a tomarlas.']} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {REQUIRED.map((r) => {
+          const ok = Boolean(state.photos[r.key])
+          return (
+            <div key={r.key} className={`p-3 rounded-xl border flex items-center justify-between ${ok ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
+              <span className="text-sm">{r.label}</span>
+              <span className={`text-xs px-2 py-0.5 rounded ${ok ? 'bg-green-600 text-white' : 'bg-amber-600 text-white'}`}>{ok ? 'OK' : 'Falta'}</span>
+            </div>
+          )
+        })}
       </div>
 
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-        {qualityResult.success ? '¡Calidad Aprobada!' : 'Problema con la Calidad'}
-      </h2>
+      {!ready && <div className="text-sm text-amber-700">Faltan: {missing.map((m) => m.label).join(', ')}.</div>}
 
-      <div className={`p-4 rounded-lg mb-6 ${
-        qualityResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-      }`}>
-        <p className="font-medium">{qualityResult.message}</p>
-        {qualityResult.sharpness && (
-          <p className="text-sm mt-2">Nitidez: {qualityResult.sharpness.toFixed(2)}%</p>
-        )}
+      <div className="flex justify-between">
+        <Button variant="ghost" onClick={onBack}>Atrás</Button>
+        <Button onClick={onNext} disabled={!ready}>Continuar</Button>
       </div>
-
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3">Imagen analizada:</h3>
-        <img 
-          src={imagePreview} 
-          alt="Vehículo inspeccionado" 
-          className="max-w-full h-auto rounded-lg shadow-md mx-auto max-h-64 object-contain"
-        />
-      </div>
-
-      {qualityResult.success ? (
-        <div className="space-y-4">
-          <Button onClick={handleContinue} size="lg">
-            Continuar con Detección de Daños
-          </Button>
-          <div className="flex items-center justify-center text-yellow-700 bg-yellow-50 p-3 rounded-lg">
-            <AlertTriangle size={20} className="mr-2" />
-            <span className="text-sm">El análisis puede tomar unos segundos</span>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => window.location.reload()} variant="secondary">
-          Intentar con Otra Imagen
-        </Button>
-      )}
     </div>
-  );
-};
+  )
+}
