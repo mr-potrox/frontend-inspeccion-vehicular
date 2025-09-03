@@ -1,48 +1,88 @@
-// src/components/inspection/UserForm.tsx
-import React, { useState } from 'react';
-import { Button } from '../../components/common/Button';
-import { useInspection } from '../../contexts/InspectionContext';
-
-interface UserInfo {
-  name: string;
-  idNumber: string;
-  plate: string;
-}
+import React, { useState } from 'react'
+import { Button } from '../common/Button'
+import { useInspectionStore } from "@/hooks/useInspectionStore"
+import { verifyVehicle } from "@/services/api"
 
 export const UserForm: React.FC = () => {
-  const { setCurrentStep, setUserInfo: setGlobalUserInfo } = useInspection();
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', idNumber: '', plate: '' });
+  const { setStep, setUserInfo: setGlobalUserInfo } = useInspectionStore()
+  const [plate, setPlate] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [userData, setUserData] = useState<{ name?: string; idNumber?: string; plate?: string; brand?: string; model?: string; year?: string } | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userInfo.name || !userInfo.idNumber || !userInfo.plate) {
-      alert('Por favor completa todos los campos');
-      return;
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const result = await verifyVehicle(plate)
+      if (result.found && result.data) {
+        setUserData({
+          name: result.data.owner,
+          idNumber: result.data.id,
+          plate: result.data.plate,
+          brand: result.data.brand,
+          model: result.data.model,
+          year: result.data.year
+        })
+        setGlobalUserInfo({
+          name: result.data.owner,
+          idNumber: result.data.id,
+          plate: result.data.plate
+        })
+      } else {
+        setError("Vehículo no encontrado.")
+        setUserData(null)
+      }
+    } catch {
+      setError("Error al consultar el servicio.")
+      setUserData(null)
+    } finally {
+      setLoading(false)
     }
-    setGlobalUserInfo(userInfo); // guardamos info globalmente si es necesario
-    setCurrentStep('upload-image'); // avanzar al paso de imágenes
-  };
+  }
+
+  const handleContinue = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!userData) {
+      setError('Primero verifica la placa.')
+      return
+    }
+    setStep('front')
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto text-left bg-gray-50 p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-4">Identificación del usuario</h2>
-
-      <label className="block">
-        Nombre:
-        <input type="text" value={userInfo.name} onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })} className="w-full mt-1 p-2 border rounded" required />
-      </label>
-
-      <label className="block">
-        Número de identificación:
-        <input type="text" value={userInfo.idNumber} onChange={(e) => setUserInfo({ ...userInfo, idNumber: e.target.value })} className="w-full mt-1 p-2 border rounded" required />
-      </label>
+    <form onSubmit={handleContinue} className="space-y-4 max-w-md mx-auto text-left bg-gray-50 p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-semibold mb-4">Identificación del vehículo</h2>
 
       <label className="block">
         Placa del vehículo:
-        <input type="text" value={userInfo.plate} onChange={(e) => setUserInfo({ ...userInfo, plate: e.target.value })} className="w-full mt-1 p-2 border rounded" required />
+        <input
+          type="text"
+          value={plate}
+          onChange={(e) => setPlate(e.target.value)}
+          className="w-full mt-1 p-2 border rounded"
+          required
+        />
+        <Button type="button" onClick={handleVerify} disabled={loading || !plate} className="mt-2">
+          {loading ? "Verificando..." : "Verificar vehículo"}
+        </Button>
       </label>
 
-      <Button type="submit">Continuar</Button>
+      {userData && (
+        <div className="mt-4 bg-white rounded p-4 border">
+          <div><strong>Nombre:</strong> {userData.name}</div>
+          <div><strong>Número de identificación:</strong> {userData.idNumber}</div>
+          <div><strong>Marca:</strong> {userData.brand}</div>
+          <div><strong>Modelo:</strong> {userData.model}</div>
+          <div><strong>Año:</strong> {userData.year}</div>
+          <div><strong>Placa:</strong> {userData.plate}</div>
+        </div>
+      )}
+
+      {error && <div className="text-red-600 text-sm">{error}</div>}
+
+      <Button type="submit" disabled={!userData}>Continuar</Button>
     </form>
-  );
-};
+  )
+}

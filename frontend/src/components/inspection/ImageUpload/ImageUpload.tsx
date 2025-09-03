@@ -1,16 +1,14 @@
-// src/components/inspection/ImageUpload.tsx
-import React from 'react';
-import { useInspection } from '../../../contexts/InspectionContext';
-import { UserForm } from '../UserForm';
-import { UploadImages } from '../UploadImages';
+import React from 'react'
+import { useInspectionStore } from '@/hooks/useInspectionStore'
+import { UserForm } from '../UserForm'
 
 export const ImageUpload: React.FC = () => {
-  const { currentStep } = useInspection();
-
+  const { state } = useInspectionStore()
+  const { currentStep } = state;
+  
   return (
     <div className="text-center">
       {currentStep === 'user-info' && <UserForm />}
-      {currentStep === 'upload-image' && <UploadImages />}
     </div>
   );
 };

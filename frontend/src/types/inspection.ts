@@ -35,6 +35,8 @@ export type PhotoRequirement = {
 }
 
 export type InspectionStep =
+  | 'user-info'
+  | 'upload-image'
   | 'landing'
   | PhotoKey
   | 'quality-check'
@@ -43,6 +45,12 @@ export type InspectionStep =
 
 export interface InspectionState {
   currentStep: InspectionStep
+  userInfo?: {
+    name: string
+    idNumber: string
+    plate: string
+  }
+  geoData?: Partial<Record<PhotoKey, { lat: number; lon: number }>>
   photos: Partial<Record<PhotoKey, File>>
   previews: Partial<Record<PhotoKey, string>>
   qualityResult: QualityResult | null

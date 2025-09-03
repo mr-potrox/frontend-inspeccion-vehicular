@@ -1,71 +1,73 @@
-// src/components/inspection/UploadImages.tsx
-import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, Camera } from 'lucide-react';
-import { Button } from '../../components/common/Button';
-import { useInspection } from '../../contexts/InspectionContext';
-import { useImageProcessing } from '../../hooks/useImageProcessing';
+import React, { useCallback, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
+import { Upload, Camera } from 'lucide-react'
+import { Button } from '../common/Button'
+import { useInspectionStore } from "@/hooks/useInspectionStore"
+import { useImageProcessing } from '../../hooks/useImageProcessing'
+
+// Puedes parametrizar photoKey si lo necesitas, aquí lo dejo fijo como ejemplo
+const photoKey = 'front'; // Cambia esto según el flujo real
 
 export const UploadImages: React.FC = () => {
-  const { setUploadedImage, setIsProcessing, setQualityResult, setCurrentStep } = useInspection();
-  const { processImageQuality } = useImageProcessing();
-
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [geoData, setGeoData] = useState<{ lat: number; lon: number } | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const { setPhoto, setStep } = useInspectionStore()
+  const { processImageQuality } = useImageProcessing()
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [geoData, setGeoData] = useState<{ lat: number; lon: number } | null>(null)
+  const [geoError, setGeoError] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [qualityResult, setQualityResult] = useState<any>(null)
 
   const processFile = async (file: File, coords: { lat: number; lon: number } | null) => {
-    const preview = URL.createObjectURL(file);
-    setUploadedImage(file, preview);
-    setFileName(file.name);
+    setPhoto(photoKey, file, coords)
+    setFileName(file.name)
 
     try {
-      const qualityResult = await processImageQuality(file);
-      setQualityResult(qualityResult);
+      const result = await processImageQuality(file)
+      setQualityResult(result)
     } catch (error) {
-      console.error('Error processing image quality:', error);
+      console.error('Error processing image quality:', error)
     } finally {
-      setIsProcessing(false);
-      setCurrentStep('quality-check');
+      setIsProcessing(false)
+      setStep('quality-check')
     }
   };
 
   const handleFileWithGeo = async (file: File) => {
-    setIsProcessing(true);
+    setIsProcessing(true)
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          setGeoData(coords);
-          setGeoError(null);
-          processFile(file, coords);
+          const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude }
+          setGeoData(coords)
+          setGeoError(null)
+          processFile(file, coords)
         },
         (err) => {
-          let message = '';
+          let message = ''
           switch (err.code) {
-            case 1: message = 'Permiso de ubicación denegado'; break;
-            case 2: message = 'Posición no disponible'; break;
-            case 3: message = 'Timeout al obtener ubicación'; break;
-            default: message = 'Error desconocido';
+            case 1: message = 'Permiso de ubicación denegado'; break
+            case 2: message = 'Posición no disponible'; break
+            case 3: message = 'Timeout al obtener ubicación'; break
+            default: message = 'Error desconocido'
           }
-          setGeoError(message);
-          setGeoData(null);
-          processFile(file, null);
+          setGeoError(message)
+          setGeoData(null)
+          processFile(file, null)
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      setGeoError('Geolocalización no soportada');
-      setGeoData(null);
-      processFile(file, null);
+      setGeoError('Geolocalización no soportada')
+      setGeoData(null)
+      processFile(file, null)
     }
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) await handleFileWithGeo(file);
-  }, []);
+    const file = acceptedFiles[0]
+    if (file) await handleFileWithGeo(file)
+  }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -105,9 +107,11 @@ export const UploadImages: React.FC = () => {
               <li><strong>Latitud:</strong> {geoData.lat.toFixed(6)}</li>
               <li><strong>Longitud:</strong> {geoData.lon.toFixed(6)}</li>
             </> : geoError ? <li>{geoError}</li> : <li>Obteniendo geolocalización...</li>}
+            {qualityResult && <li><strong>Calidad:</strong> {JSON.stringify(qualityResult)}</li>}
           </ul>
         </div>
       )}
+      {isProcessing && <div className="mt-4 text-primary-600">Procesando imagen...</div>}
     </>
-  );
-};
+  )
+}

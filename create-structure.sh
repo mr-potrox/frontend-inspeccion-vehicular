@@ -55,8 +55,6 @@ touch src/utils/imageUtils.ts
 # Crear archivos de constantes vacíos
 touch src/constants/inspection.ts
 
-# Crear archivos de contexto vacíos
-touch src/contexts/InspectionContext.tsx
 
 # Crear componentes comunes vacíos
 touch src/components/common/Button/Button.tsx
