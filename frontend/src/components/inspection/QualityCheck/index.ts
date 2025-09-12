@@ -1,1 +1,1 @@
-export { QualityCheck } from './QualityCheck';
+export { default } from './QualityCheck';

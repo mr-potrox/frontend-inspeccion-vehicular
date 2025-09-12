@@ -1,0 +1,17 @@
+fraud:
+  - id: GEO_BROWSER_MISMATCH
+    when: geo.browser_distance > 300
+    level: medium
+  - id: GEO_HARD_MISMATCH
+    when: geo.hard_mismatch == True
+    level: high
+
+review:
+  - id: COLOR_MISMATCH
+    when: color.mismatch == True
+  - id: MANY_DAMAGE
+    when: damage.count > 10
+  - id: MISSING_PARTS
+    when: parts.missing_count >= 1
+  - id: LOW_IMAGE_QUALITY
+    when: quality.ok == False

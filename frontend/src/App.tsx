@@ -1,69 +1,81 @@
-import React, { useState, useEffect } from "react";
-import { InspectionProvider } from "@/hooks/useInspectionStore";
-import InspectionFlow from "@/components/inspection/InspectionFlow/InspectionFlow";
-import Button from "@/components/common/Button/Button";
-import CoachChat from "@/components/common/CoachChat/CoachChat";
+// filepath: [App.tsx](http://_vscodecontentref_/6)
+import React, { useState, useEffect, Suspense } from 'react'
+import { InspectionProvider } from '@/hooks/useInspectionStore'
+import { ChatOrchestrator } from '@/components/chatflow/ChatOrchestrator'
+import CoachChat from '@/components/common/CoachChat/CoachChat'
+import Button from '@/components/common/Button/Button'
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { getApiVersion } from '@/services/inspectionService'
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(() =>
-    window.innerWidth <= 600 &&
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-  );
-  const [started, setStarted] = useState(false); // <-- Mueve aquí
+    window.innerWidth <= 600 && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  )
+  const [versionMismatch, setVersionMismatch] = useState<string | null>(null)
+  const [started, setStarted] = useState(false)
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(
-        window.innerWidth <= 600 &&
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      );
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    const handleResize = () =>
+      setIsMobile(window.innerWidth <= 600 && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const api = await getApiVersion()
+        const expected = import.meta.env.VITE_EXPECTED_API_VERSION
+        if (expected && api.version && api.version !== expected) {
+          setVersionMismatch(`Versión API ${api.version} ≠ esperada ${expected}`)
+        }
+      } catch {
+        setVersionMismatch('No se pudo validar la versión API.')
+      }
+    })()
+  }, [])
 
   if (!isMobile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-xl shadow text-center max-w-md mx-auto">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-neutral-900 dark:text-neutral-100">
+        <div className="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow text-center max-w-md mx-auto">
           <h2 className="text-2xl font-bold mb-4">Solo disponible en modo móvil</h2>
-          <p>
-            Por favor abre esta aplicación en tu teléfono móvil y/o ajusta el tamaño de la ventana para simular un dispositivo móvil.
-          </p>
+          <p>Usa tu teléfono o reduce la ventana.</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <InspectionProvider>
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      {versionMismatch && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-white text-xs px-3 py-1 rounded shadow">
+          {versionMismatch}
+        </div>
+      )}
+      <div className="min-h-screen bg-gray-50 dark:bg-neutral-900 flex items-center justify-center p-6">
         {!started ? (
           <div className="text-center max-w-lg">
-            <img
-              src="/logo.png"
-              alt="Logo Inspección Vehicular"
-              className="mx-auto w-28 h-28 mb-6"
-            />
+            <img src="/logo.png" alt="Logo" className="mx-auto w-24 h-24 mb-6" />
             <CoachChat
               messages={[
-                "👋 ¡Hola! Soy tu asistente de inspección vehicular.",
-                "Vamos a revisar paso a paso tu vehículo 🚗",
-                "Cuando estés listo, haz clic en Iniciar Inspección ✅",
+                '👋 Bienvenido a la inspección asistida.',
+                'Validaremos identidad y vehículo antes de iniciar.',
+                'Pulsa Iniciar para comenzar.'
               ]}
             />
             <div className="mt-6">
-              <Button variant="primary" onClick={() => setStarted(true)}>
-                Iniciar Inspección
-              </Button>
+              <Button variant="primary" onClick={() => setStarted(true)}>Iniciar</Button>
             </div>
           </div>
         ) : (
           <div className="w-full">
-            <InspectionFlow />
+            <Suspense fallback={<LoadingSpinner title="Cargando" message="Preparando interfaz..." />}>
+              <ChatOrchestrator />
+            </Suspense>
           </div>
         )}
       </div>
     </InspectionProvider>
-  );
+  )
 }

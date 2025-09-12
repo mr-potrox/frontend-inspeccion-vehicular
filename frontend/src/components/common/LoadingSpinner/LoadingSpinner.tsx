@@ -1,16 +1,18 @@
 import React from 'react';
 import { Loader } from 'lucide-react';
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   title?: string;
   message?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: string;
+  className?: string;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   title = "Procesando",
   message = "Por favor espere...",
-  size = "md"
+  size = 28,
+  className
 }) => {
   const sizeClasses = {
     sm: 'w-6 h-6',

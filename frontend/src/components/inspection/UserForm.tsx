@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { Button } from '../common/Button'
 import { useInspectionStore } from "@/hooks/useInspectionStore"
-import { verifyVehicle } from "@/services/api"
+import { verifyVehicle } from "@/services/inspectionService"
+
+const PLATE_REGEX = /^[A-Z0-9]{5,7}$/i
 
 export const UserForm: React.FC = () => {
   const { setStep, setUserInfo: setGlobalUserInfo } = useInspectionStore()
@@ -13,21 +15,26 @@ export const UserForm: React.FC = () => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    const normalized = plate.toUpperCase().trim()
+    if (!PLATE_REGEX.test(normalized)) {
+      setError('Formato inválido. Use 5–7 caracteres alfanuméricos.')
+      return
+    }
     setLoading(true)
     try {
-      const result = await verifyVehicle(plate)
+      const result = await verifyVehicle(normalized)
       if (result.found && result.data) {
         setUserData({
           name: result.data.owner,
-          idNumber: result.data.id,
-          plate: result.data.plate,
-          brand: result.data.brand,
-          model: result.data.model,
-          year: result.data.year
+            idNumber: result.data.id,
+            plate: result.data.plate,
+            brand: result.data.brand,
+            model: result.data.model,
+            year: result.data.year
         })
         setGlobalUserInfo({
-          name: result.data.owner,
-          idNumber: result.data.id,
+          name: result.data.owner || '',
+          idNumber: result.data.id || '',
           plate: result.data.plate
         })
       } else {
@@ -60,9 +67,10 @@ export const UserForm: React.FC = () => {
         <input
           type="text"
           value={plate}
-          onChange={(e) => setPlate(e.target.value)}
+          onChange={(e) => setPlate(e.target.value.toUpperCase())}
           className="w-full mt-1 p-2 border rounded"
           required
+          maxLength={7}
         />
         <Button type="button" onClick={handleVerify} disabled={loading || !plate} className="mt-2">
           {loading ? "Verificando..." : "Verificar vehículo"}
@@ -70,9 +78,9 @@ export const UserForm: React.FC = () => {
       </label>
 
       {userData && (
-        <div className="mt-4 bg-white rounded p-4 border">
+        <div className="mt-4 bg-white rounded p-4 border text-sm space-y-1">
           <div><strong>Nombre:</strong> {userData.name}</div>
-          <div><strong>Número de identificación:</strong> {userData.idNumber}</div>
+          <div><strong>ID:</strong> {userData.idNumber}</div>
           <div><strong>Marca:</strong> {userData.brand}</div>
           <div><strong>Modelo:</strong> {userData.model}</div>
           <div><strong>Año:</strong> {userData.year}</div>
