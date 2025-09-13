@@ -16,4 +16,5 @@ prometheus-client
 slowapi
 pyyaml
 reportlab
+easyocr
 colormath
