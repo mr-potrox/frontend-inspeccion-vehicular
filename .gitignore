@@ -58,3 +58,107 @@ frontend/*.tgz
 
 # Yarn Integrity file
 frontend/.yarn-integrity
+
+# === BACKEND ===
+
+# Python
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/*.so
+backend/.Python
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+backend/MANIFEST
+
+# Virtual environments
+backend/venv/
+backend/env/
+backend/ENV/
+backend/env.bak/
+backend/venv.bak/
+
+# Environment variables
+backend/.env
+backend/.env.local
+backend/.env.development.local
+backend/.env.test.local
+backend/.env.production.local
+
+# IDE
+backend/.vscode/
+backend/.idea/
+backend/*.swp
+backend/*.swo
+
+# Logs
+backend/*.log
+backend/logs/
+
+# === ARCHIVOS DE INVESTIGACIÓN Y DESARROLLO ===
+
+# Datasets (grandes)
+*.zip
+datasets/
+data/
+dataset_*/
+
+# Modelos de IA (grandes) - excepto los finales en backend/models/
+*.pt
+*.onnx
+*.pkl
+!backend/models/*.pt
+
+# Notebooks de entrenamiento
+*.ipynb
+training_notebooks/
+
+# Resultados de análisis
+cleaning_results/
+confusion_*/
+analysis_results/
+results/
+
+# Scripts de preprocessing/análisis
+analyze_*.py
+balance_*.py
+clean_*.py
+consolidate_*.py
+evaluate_*.py
+verify_*.py
+*-structure.sh
+*-configs.sh
+
+# Configuraciones de entrenamiento
+*.yaml
+!docker-compose.yml
+
+# Archivos temporales del sistema
+*.log
+*.tmp
+*.cache
+
+# Entornos virtuales adicionales
+*_env/
+confusion_env/
+
+# OS específicos
+.DS_Store
+Thumbs.db
+
+# Archivos de backup
+*_backup_*/
+backup_*/
