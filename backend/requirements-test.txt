@@ -1,0 +1,23 @@
+# Test requirements for backend testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+pytest-cov>=4.1.0
+httpx>=0.24.0
+respx>=0.20.0
+
+# FastAPI testing
+fastapi[all]>=0.100.0
+httpx>=0.24.0
+
+# Database testing
+pymongo>=4.5.0
+mongomock>=4.1.0
+
+# Image processing for tests
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+
+# Mocking and utilities
+factory-boy>=3.3.0
+faker>=19.3.0

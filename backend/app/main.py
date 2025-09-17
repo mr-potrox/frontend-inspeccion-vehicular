@@ -1,4 +1,3 @@
-import imghdr
 import magic
 from typing import Optional, List, Dict, Any
 from fastapi import (
@@ -66,9 +65,26 @@ def _validate_upload(file: UploadFile) -> bytes:
     mime = magic.from_buffer(raw, mime=True) if magic else None
     if mime and not mime.startswith("image/"):
         raise HTTPException(status_code=400, detail="Formato no permitido")
-    fmt = imghdr.what(None, raw)
-    if fmt is None or fmt == "svg":
+    
+    # Simple image format validation without imghdr
+    # Check for common image file signatures
+    if raw.startswith(b'\x89PNG\r\n\x1a\n'):  # PNG
+        pass
+    elif raw.startswith(b'\xff\xd8\xff'):  # JPEG
+        pass
+    elif raw.startswith(b'GIF87a') or raw.startswith(b'GIF89a'):  # GIF
+        pass
+    elif raw.startswith(b'RIFF') and b'WEBP' in raw[:12]:  # WebP
+        pass
+    elif raw.startswith(b'BM'):  # BMP
+        pass
+    elif raw.startswith(b'<svg') or b'<svg' in raw[:100]:  # SVG (not allowed)
         raise HTTPException(status_code=400, detail="Imagen inválida")
+    else:
+        # If we can't identify the format by signature but magic says it's an image, allow it
+        if not mime or not mime.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Imagen inválida")
+    
     return raw
 
 # --------------- Startup -----------------
