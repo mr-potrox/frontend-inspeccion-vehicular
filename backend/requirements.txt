@@ -2,6 +2,7 @@ uvicorn
 fastapi
 python-multipart
 pydantic
+pydantic-settings
 ultralytics
 torch
 torchvision

@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # --- Base / API ---
@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # --- Modelos daños / partes ---
-    DAMAGE_MODEL_PATH: str = "models/damage_yolo.pt"
-    PARTS_MODEL_PATH: str = "models/parts_yolo.pt"
+    DAMAGE_MODEL_PATH: str = "models/damage_best.pt"
+    PARTS_MODEL_PATH: str = "models/parts_best.pt"
     DAMAGE_MODEL_NAME: str = "damage-yolo"
     PARTS_MODEL_NAME: str = "parts-yolo"
     DEFAULT_CONF_DAMAGE: float = 0.35
@@ -103,6 +103,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"
 
 @lru_cache
 def get_settings() -> Settings:

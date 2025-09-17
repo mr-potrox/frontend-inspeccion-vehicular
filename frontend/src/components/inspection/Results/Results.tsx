@@ -6,6 +6,10 @@ import { PhotoKey } from '@/types/inspection'
 import { BoxesOverlay } from '@/components/common/BoxesOverlay'
 import { getReportPdf, getHealth } from '@/services/inspectionService'
 
+// NOTA: Se usan casts a 'any' porque las interfaces TS aún no contemplan
+// los campos extendidos (color_evaluation, ocr_summary, part_completeness_score,
+// illumination/background/segmentation/ocr/tamper). Actualiza las definiciones luego.
+
 const LABELS: Record<PhotoKey, string> = {
   front: 'Frontal',
   rear: 'Trasera',
@@ -33,8 +37,8 @@ export default function Results({ onBack }: { onBack: () => void }) {
     (async () => {
       try {
         const h = await getHealth()
-        if (h.pdf_enabled === false) setPdfEnabled(false)
-        if (h.labels?.damage_labels) setAvailableDamageLabels(h.labels.damage_labels)
+        if (h?.pdf_enabled === false) setPdfEnabled(false)
+        if (h?.labels?.damage_labels) setAvailableDamageLabels(h.labels.damage_labels)
       } catch { /* ignore */ }
     })()
   }, [])
@@ -50,25 +54,27 @@ export default function Results({ onBack }: { onBack: () => void }) {
     }
   })
 
+  // Promedios iluminación (campos extendidos)
   let illumMeanAvg: string | undefined
   let illumDRAvg: string | undefined
-  if (final?.illumination_frames?.length) {
-    const means = final.illumination_frames.map((f: any) => f.mean || 0)
-    const drs = final.illumination_frames.map((f: any) => f.dynamic_range || 0)
+  const finalAny = final as any
+  if (finalAny?.illumination_frames?.length) {
+    const means = finalAny.illumination_frames.map((f: any) => f?.mean || 0)
+    const drs = finalAny.illumination_frames.map((f: any) => f?.dynamic_range || 0)
     const avg = (a: number[]) => a.reduce((p,c)=>p+c,0)/Math.max(1,a.length)
     illumMeanAvg = avg(means).toFixed(1)
     illumDRAvg = avg(drs).toFixed(1)
   }
 
   const handleDownloadPdf = async () => {
-    if (!final?.inspection_id) return
+    if (!finalAny?.inspection_id) return
     try {
       setDownloading(true)
-      const blob = await getReportPdf(final.inspection_id)
+      const blob = await getReportPdf(finalAny.inspection_id)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `reporte_${final.inspection_id}.pdf`
+      a.download = `reporte_${finalAny.inspection_id}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } finally { setDownloading(false) }
@@ -76,7 +82,7 @@ export default function Results({ onBack }: { onBack: () => void }) {
 
   const messages = aborted
     ? ['⚠️ Inspección abortada', 'Motivo: ' + (state.abortReason || 'No especificado')]
-    : ['✅ Inspección completada', final?.status || '']
+    : ['✅ Inspección completada', finalAny?.status || '']
 
   const scratchSevLabels = ['minor','moderate','severe']
 
@@ -84,7 +90,7 @@ export default function Results({ onBack }: { onBack: () => void }) {
     <div className="space-y-6">
       <CoachChat messages={messages} />
 
-      {(illumMeanAvg || final?.fraud_flags?.length) && (
+      {(illumMeanAvg || (finalAny?.fraud_flags && finalAny.fraud_flags.length>0)) && (
         <div className="border rounded-xl p-4 bg-white text-xs flex flex-wrap gap-4 items-center">
           {illumMeanAvg && (
             <>
@@ -92,9 +98,9 @@ export default function Results({ onBack }: { onBack: () => void }) {
               <div><strong>Ilum. DR:</strong> {illumDRAvg}</div>
             </>
           )}
-          {final?.fraud_flags?.length > 0 && (
+          {finalAny?.fraud_flags?.length > 0 && (
             <div className="text-red-600">
-              Fraud: {final.fraud_flags.join(', ')}
+              Fraud: {finalAny.fraud_flags.join(', ')}
             </div>
           )}
         </div>
@@ -141,15 +147,20 @@ export default function Results({ onBack }: { onBack: () => void }) {
 
       <div className="grid md:grid-cols-3 gap-4">
         {items.map(it => {
-          const analysis = it.analysis
-          const damageBoxes = (showDamage && analysis?.damage)
-            ? analysis.damage
-                .filter((d: any) =>
+          const analysisAny = it.analysis as any
+            // Asegura arrays
+          const rawDamage: any[] = Array.isArray(analysisAny?.damage) ? analysisAny.damage : []
+
+          const damageBoxes = (showDamage && rawDamage.length)
+            ? rawDamage
+                .filter(d =>
                   (damageFilter.length === 0 || damageFilter.includes(d.label)) &&
-                  (d.label !== 'scratch' || scratchSeverityFilter.length === 0 ||
+                  (showScratches || d.label !== 'scratch') &&
+                  (d.label !== 'scratch' ||
+                    scratchSeverityFilter.length === 0 ||
                     (d.scratch_severity && scratchSeverityFilter.includes(d.scratch_severity.severity)))
                 )
-                .map((d: any) => ({
+                .map(d => ({
                   box: d.box,
                   label: d.label === 'scratch' && d.scratch_severity
                     ? `${d.label} (${d.scratch_severity.severity})`
@@ -169,64 +180,66 @@ export default function Results({ onBack }: { onBack: () => void }) {
                 : <div className="h-40 flex items-center justify-center text-xs text-gray-500">Sin imagen</div>
               }
 
-              {analysis?.quality_status && (
+              {analysisAny?.quality_status && (
                 <div className="text-[11px]">
                   Calidad: <span className={
-                    analysis.quality_status==='very_blur'?'text-red-600':
-                    analysis.quality_status==='blur'?'text-amber-600':
-                    analysis.quality_status==='warn'?'text-amber-500':'text-green-600'
-                  }>{analysis.quality_status}</span>
+                    analysisAny.quality_status==='very_blur'?'text-red-600':
+                    analysisAny.quality_status==='blur'?'text-amber-600':
+                    analysisAny.quality_status==='warn'?'text-amber-500':'text-green-600'
+                  }>{analysisAny.quality_status}</span>
                 </div>
               )}
 
-              {analysis?.illumination && (
+              {analysisAny?.illumination && (
                 <div className="text-[11px]">
-                  Luz: {analysis.illumination.status} |
-                  Mean {analysis.illumination.mean?.toFixed(1)} /
-                  DR {analysis.illumination.dynamic_range?.toFixed(1)}
-                  {analysis.illumination.flags?.length > 0 && (
+                  Luz: {analysisAny.illumination.status} |
+                  Mean {analysisAny.illumination.mean != null ? analysisAny.illumination.mean.toFixed(1) : '—'} /
+                  DR {analysisAny.illumination.dynamic_range != null
+                      ? analysisAny.illumination.dynamic_range.toFixed(1) : '—'}
+                  {analysisAny.illumination.flags?.length > 0 && (
                     <div className="text-amber-600">
-                      Flags: {analysis.illumination.flags.join(', ')}
+                      Flags: {analysisAny.illumination.flags.join(', ')}
                     </div>
                   )}
                 </div>
               )}
 
-              {analysis?.background && (
+              {analysisAny?.background && (
                 <div className="text-[11px]">
-                  Fondo: {analysis.background.label} ({Math.round(analysis.background.score*100)}%)
-                  {analysis.background.policy?.inconsistent && (
+                  Fondo: {analysisAny.background.label}
+                  {analysisAny.background.score!=null && ` (${Math.round(analysisAny.background.score*100)}%)`}
+                  {analysisAny.background.policy?.inconsistent && (
                     <span className="text-red-600"> (inconsistente)</span>
                   )}
                 </div>
               )}
 
-              {analysis?.segmentation?.coverage_ratio != null && (
+              {analysisAny?.segmentation?.coverage_ratio != null && (
                 <div className="text-[11px]">
-                  Cobertura seg: {(analysis.segmentation.coverage_ratio*100).toFixed(1)}%
+                  Cobertura seg: {(analysisAny.segmentation.coverage_ratio*100).toFixed(1)}%
                 </div>
               )}
 
-              {analysis?.ocr?.plate_candidates?.length > 0 && (
+              {analysisAny?.ocr?.plate_candidates?.length > 0 && (
                 <div className="text-[11px]">
-                  OCR Placa: {analysis.ocr.plate_candidates[0].text}
+                  OCR Placa: {analysisAny.ocr.plate_candidates[0]?.text}
                 </div>
               )}
 
-              {analysis?.tamper && (
-                <div className={`text-[11px] ${analysis.tamper.suspect?'text-red-600':'text-green-600'}`}>
-                  Tamper: {analysis.tamper.suspect ? 'SOSPECHOSO' : 'OK'}
-                  {analysis.tamper.reasons?.length > 0 && (
-                    <span> [{analysis.tamper.reasons.join(', ')}]</span>
+              {analysisAny?.tamper && (
+                <div className={`text-[11px] ${analysisAny.tamper.suspect?'text-red-600':'text-green-600'}`}>
+                  Tamper: {analysisAny.tamper.suspect ? 'SOSPECHOSO' : 'OK'}
+                  {analysisAny.tamper.reasons?.length > 0 && (
+                    <span> [{analysisAny.tamper.reasons.join(', ')}]</span>
                   )}
                 </div>
               )}
 
-              {analysis?.damage && analysis.damage.some((d:any)=>d.label==='scratch' && d.scratch_severity) && (
+              {rawDamage.some(d=>d.label==='scratch' && d.scratch_severity) && showScratches && (
                 <div className="text-[11px]">
-                  Severidades: {analysis.damage
-                    .filter((d:any)=>d.label==='scratch' && d.scratch_severity)
-                    .map((d:any)=>d.scratch_severity.severity)
+                  Severidades: {rawDamage
+                    .filter(d=>d.label==='scratch' && d.scratch_severity)
+                    .map(d=>d.scratch_severity.severity)
                     .join(', ')}
                 </div>
               )}
@@ -236,32 +249,33 @@ export default function Results({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="border rounded-xl p-4 bg-gray-50 text-sm space-y-2">
-        <div><strong>Placa:</strong> {user?.plate}</div>
-        {final?.inspection_id && <div><strong>ID:</strong> {final.inspection_id}</div>}
-        {final?.status && <div><strong>Estado:</strong> {final.status}</div>}
-        {final?.color_evaluation && (
+        <div><strong>Placa:</strong> {user?.plate || finalAny?.plate || '—'}</div>
+        {finalAny?.inspection_id && <div><strong>ID:</strong> {finalAny.inspection_id}</div>}
+        {finalAny?.status && <div><strong>Estado:</strong> {finalAny.status}</div>}
+        {finalAny?.color_evaluation && (
           <div className="text-xs">
-            <strong>Color fraude:</strong> {final.color_evaluation.fraud ? 'Sí':'No'} |
-            mismatch {(final.color_evaluation.mismatch_ratio*100).toFixed(1)}%
+            <strong>Color fraude:</strong> {finalAny.color_evaluation.fraud ? 'Sí':'No'} |
+            mismatch {finalAny.color_evaluation.mismatch_ratio!=null
+              ? (finalAny.color_evaluation.mismatch_ratio*100).toFixed(1) : '—'}%
           </div>
         )}
-        {final?.ocr_summary && (
+        {finalAny?.ocr_summary && (
           <div className="text-xs">
-            <strong>OCR Placa:</strong> {final.ocr_summary.plate_candidates?.[0]?.text || 'N/D'} |
-            <strong> VIN:</strong> {final.ocr_summary.vin_detected || 'N/D'}
+            <strong>OCR Placa:</strong> {finalAny.ocr_summary.plate_candidates?.[0]?.text || 'N/D'} |
+            <strong> VIN:</strong> {finalAny.ocr_summary.vin_detected || 'N/D'}
           </div>
         )}
-        {final?.fraud_flags?.length > 0 && (
-            <div className="text-xs text-red-600">
-              <strong>Fraud:</strong> {final.fraud_flags.join(', ')}
-            </div>
-        )}
-        {final?.part_completeness_score != null && (
-          <div className="text-xs">
-            <strong>Completitud partes:</strong> {(final.part_completeness_score*100).toFixed(1)}%
+        {finalAny?.fraud_flags?.length > 0 && (
+          <div className="text-xs text-red-600">
+            <strong>Fraud:</strong> {finalAny.fraud_flags.join(', ')}
           </div>
         )}
-        {final?.inspection_id && pdfEnabled && (
+        {finalAny?.part_completeness_score != null && (
+          <div className="text-xs">
+            <strong>Completitud partes:</strong> {(finalAny.part_completeness_score*100).toFixed(1)}%
+          </div>
+        )}
+        {finalAny?.inspection_id && pdfEnabled && (
           <Button variant="secondary" onClick={handleDownloadPdf} disabled={downloading}>
             {downloading ? 'Descargando...' : 'PDF'}
           </Button>
